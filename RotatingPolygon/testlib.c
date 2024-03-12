@@ -5,7 +5,7 @@
 
 #define NUM_OF_VERTICES 6
 #define ROTATION_ANGLE 0.0
-#define ROTATION_SPEED 0.02 // Adjusted the rotation speed
+#define ROTATION_SPEED 0.02 
 #define MIN_SCALE 0.2
 #define ORIGINAL_RADIUS 150
 #define SCREEN_WIDTH gfx_screenWidth()
@@ -25,15 +25,10 @@ void drawPolygon(int vertices, double scale, int centerX, int centerY,
 
 	for (int i = 0; i < vertices; ++i) {
 		// conversion from polar to cartesian coordinates
-		Vertex vertex1 = {centerX + (int)(originalRadius * scale *
-										  cos(i * angle + rotationAngle)),
-						  centerY + (int)(originalRadius * scale *
-										  sin(i * angle + rotationAngle))};
-		Vertex vertex2 = {centerX + (int)(originalRadius * scale *
-										  cos((i + 1) * angle + rotationAngle)),
-						  centerY +
-							  (int)(originalRadius * scale *
-									sin((i + 1) * angle + rotationAngle))};
+		Vertex vertex1 = {centerX + (int)(originalRadius * scale * cos(i * angle + rotationAngle)),
+						  centerY + (int)(originalRadius * scale * sin(i * angle + rotationAngle))};
+		Vertex vertex2 = {centerX + (int)(originalRadius * scale * cos((i + 1) * angle + rotationAngle)),
+						  centerY + (int)(originalRadius * scale * sin((i + 1) * angle + rotationAngle))};
 
 		gfx_line(vertex1.x, vertex1.y, vertex2.x, vertex2.y, WHITE);
 	}

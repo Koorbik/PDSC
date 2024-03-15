@@ -3,102 +3,113 @@
 #include <stdlib.h>
 #include <unistd.h>
 
-#define NUM_OF_VERTICES 6
+#define NUM_OF_VERTICES 7
 #define ROTATION_ANGLE 0.0
-#define ROTATION_SPEED 0.02 
+#define ROTATION_SPEED 0.02
 #define MIN_SCALE 0.2
 #define ORIGINAL_RADIUS 150
 #define SCREEN_WIDTH gfx_screenWidth()
 #define SCREEN_HEIGHT gfx_screenHeight()
+#define CENTER_X (SCREEN_WIDTH / 2)
+#define CENTER_Y (SCREEN_HEIGHT / 2)
 
 typedef struct {
-	int x;
-	int y;
+    int x;
+    int y;
 } Vertex;
 
 typedef enum { INCREASING, DECREASING } grow_state;
 
-void drawPolygon(int vertices, double scale, int centerX, int centerY,
-				 int originalRadius, double rotationAngle)
+
+
+void drawPolygon(int vertices, double currentRadius, int centerX, int centerY,
+                 double rotationAngle)
 {
-	double angle = 2 * M_PI / vertices;
+    double angle = 2 * M_PI / vertices;
 
-	for (int i = 0; i < vertices; ++i) {
-		// conversion from polar to cartesian coordinates
-		Vertex vertex1 = {centerX + (int)(originalRadius * scale * cos(i * angle + rotationAngle)),
-						  centerY + (int)(originalRadius * scale * sin(i * angle + rotationAngle))};
-		Vertex vertex2 = {centerX + (int)(originalRadius * scale * cos((i + 1) * angle + rotationAngle)),
-						  centerY + (int)(originalRadius * scale * sin((i + 1) * angle + rotationAngle))};
+    for (int i = 0; i < vertices; ++i) {
+        
+        Vertex vertex1 = {centerX + (int)(currentRadius * cos(i * angle + rotationAngle)),
+                          centerY + (int)(currentRadius * sin(i * angle + rotationAngle))};
+        Vertex vertex2 = {centerX + (int)(currentRadius * cos((i + 1) * angle + rotationAngle)),
+                          centerY + (int)(currentRadius * sin((i + 1) * angle + rotationAngle))};
 
-		gfx_line(vertex1.x, vertex1.y, vertex2.x, vertex2.y, WHITE);
-	}
+        gfx_line(vertex1.x, vertex1.y, vertex2.x, vertex2.y, WHITE);
+    }
 }
 
-double scalePolygon(
-	double scale, int originalRadius,
-	grow_state* growth) // pass growth by reference to modify the original value
+void changeGrowState(double scale, int originalRadius, grow_state* growth,
+                     float scale_factor)
 {
-	float scale_factor;
+    if ((scale * scale_factor * originalRadius) >= CENTER_X ||
+        (scale * scale_factor * originalRadius) >= CENTER_Y) {
+        *growth = DECREASING;
+    }
+    else if (*growth == DECREASING && scale <= MIN_SCALE) {
+        *growth = INCREASING;
+    }
+}
 
-	switch (*growth) {
-	case INCREASING:
-		scale_factor = 1.01;
-		break;
-	case DECREASING:
-		scale_factor = 0.99;
-		break;
-	}
+double scalePolygon(double scale, int originalRadius, grow_state growth,
+                    float* scale_factor) 
+{
 
-	if ((scale * scale_factor * originalRadius) >= SCREEN_WIDTH / 2 ||
-		(scale * scale_factor * originalRadius) >= SCREEN_HEIGHT / 2) {
-		*growth = DECREASING;
-	}
-	else if (*growth == DECREASING && scale <= MIN_SCALE) {
-		*growth = INCREASING;
-	}
+    switch (growth) {
+    case INCREASING:
+        *scale_factor = 1.01;
+        break;
+    case DECREASING:
+        *scale_factor = 0.99;
+        break;
+    }
 
-	return scale * scale_factor;
+    return scale * (*scale_factor);
 }
 
 double rotatePolygon(double rotationAngle, double rotationSpeed)
 {
-	rotationAngle += rotationSpeed;
+    rotationAngle += rotationSpeed;
 
-	if (rotationAngle > 2 * M_PI) {
-		rotationAngle -= 2 * M_PI; // Ensure the angle stays within [0, 2π]
-	}
-	else if (rotationAngle < 0) {
-		rotationAngle += 2 * M_PI;
-	}
+    if (rotationAngle > 2 * M_PI) {
+        rotationAngle -= 2 * M_PI;
+    }
+    else if (rotationAngle < 0) {
+        rotationAngle += 2 * M_PI;
+    }
 
-	return rotationAngle;
+    return rotationAngle;
+}
+
+double calculateCurrentRadius(double scale, int originalRadius)
+{
+    double currentRadius = originalRadius * scale;
+    return currentRadius;
 }
 
 int main(int argc, char* argv[])
 {
-	if (gfx_init()) {
-		exit(3);
-	}
+    if (gfx_init()) {
+        exit(3);
+    }
 
-	int centerX = SCREEN_WIDTH / 2;
-	int centerY = SCREEN_HEIGHT / 2;
+    double scale = 1.0;
+    float scale_factor;
+    double rotationAngle = ROTATION_ANGLE;
+    double currentRadius;
+    grow_state growth = INCREASING;
 
-	double scale = 1.0;
-	double rotationAngle = ROTATION_ANGLE;
+    while (1) {
+        gfx_filledRect(0, 0, SCREEN_WIDTH - 1, SCREEN_HEIGHT - 1, BLACK);
+        drawPolygon(NUM_OF_VERTICES, currentRadius, CENTER_X, CENTER_Y, rotationAngle);
+        gfx_updateScreen();
+        SDL_Delay(10);
 
-	grow_state growth = INCREASING;
-
-	while (1) {
-		gfx_filledRect(0, 0, SCREEN_WIDTH - 1, SCREEN_HEIGHT - 1, BLACK);
-		drawPolygon(NUM_OF_VERTICES, scale, centerX, centerY, ORIGINAL_RADIUS,
-					rotationAngle);
-		gfx_updateScreen();
-		SDL_Delay(10);
-
-		scale = scalePolygon(scale, ORIGINAL_RADIUS, &growth);
-		rotationAngle = rotatePolygon(rotationAngle, ROTATION_SPEED);
-		if (gfx_pollkey() == SDLK_ESCAPE)
-			break;
-	}
-	return 0;
+        scale = scalePolygon(scale, ORIGINAL_RADIUS, growth, &scale_factor);
+        currentRadius = calculateCurrentRadius(scale, ORIGINAL_RADIUS);
+        changeGrowState(scale, ORIGINAL_RADIUS, &growth, scale_factor);
+        rotationAngle = rotatePolygon(rotationAngle, ROTATION_SPEED);
+        if (gfx_pollkey() == SDLK_ESCAPE)
+            break;
+    }
+    return 0;
 }

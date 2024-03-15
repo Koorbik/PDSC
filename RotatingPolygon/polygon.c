@@ -20,6 +20,13 @@ typedef struct {
 
 typedef enum { INCREASING, DECREASING } grow_state;
 
+Vertex calculateVertex(int centerX, int centerY, int currentRadius, int i, double angle, double rotationAngle) {
+    Vertex vertex;
+    vertex.x = centerX + (int)(currentRadius * cos(i * angle + rotationAngle));
+    vertex.y = centerY + (int)(currentRadius * sin(i * angle + rotationAngle));
+    return vertex;
+}
+
 
 
 void drawPolygon(int vertices, double currentRadius, int centerX, int centerY,
@@ -28,15 +35,13 @@ void drawPolygon(int vertices, double currentRadius, int centerX, int centerY,
     double angle = 2 * M_PI / vertices;
 
     for (int i = 0; i < vertices; ++i) {
-        
-        Vertex vertex1 = {centerX + (int)(currentRadius * cos(i * angle + rotationAngle)),
-                          centerY + (int)(currentRadius * sin(i * angle + rotationAngle))};
-        Vertex vertex2 = {centerX + (int)(currentRadius * cos((i + 1) * angle + rotationAngle)),
-                          centerY + (int)(currentRadius * sin((i + 1) * angle + rotationAngle))};
+        Vertex vertex1 = calculateVertex(centerX, centerY, currentRadius, i, angle, rotationAngle);
+        Vertex vertex2 = calculateVertex(centerX, centerY, currentRadius, i + 1, angle, rotationAngle);
 
         gfx_line(vertex1.x, vertex1.y, vertex2.x, vertex2.y, WHITE);
     }
 }
+
 
 void changeGrowState(double scale, int originalRadius, grow_state* growth,
                      float scale_factor)

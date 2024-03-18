@@ -2,20 +2,53 @@
 #include <math.h>
 #include <stdlib.h>
 #include <unistd.h>
+#include <stdbool.h>
 
 #define SCREEN_WIDTH gfx_screenWidth()
 #define SCREEN_HEIGHT gfx_screenHeight()
 #define CENTER_X SCREEN_WIDTH / 2
 #define CENTER_Y SCREEN_HEIGHT / 2
 #define FLOOR_HEIGHT 30
-#define NUM_OF_POLES 10
+#define NUM_OF_POLES 3
 #define POLE_HEIGHT 200
 #define POLE_WIDTH 20
+#define DISK_HEIGHT 10
+#define NUM_OF_DISKS 5
+#define EMPTY (-1)
+
+
 
 typedef struct {
-	int x;
-	int y;
-} Point;
+    int top;
+    int bottom;
+    int value;
+} Disk;
+
+typedef struct {
+	int top; // its for drawing a pole think of better name ffs
+	int bottom;
+    int topValue;
+    int poleNumber;
+    Disk currentDisks[NUM_OF_DISKS];
+} Pole;
+
+bool push(Pole *stack, Disk value) {
+    if (stack->topValue >= NUM_OF_DISKS - 1) return false;
+    stack->topValue++;
+    stack->currentDisks[stack->topValue] = value;
+    return true;
+}
+
+Disk pop(Pole *stack) {
+    Disk poppedDisk;
+    poppedDisk.value = EMPTY;
+    if (stack->topValue == EMPTY) return poppedDisk;
+    poppedDisk = stack->currentDisks[stack->topValue];
+    stack->topValue--;
+    return poppedDisk;
+}
+
+
 
 void drawPoles(int poles, int screenWidth, int screenHeight)
 {
@@ -24,10 +57,9 @@ void drawPoles(int poles, int screenWidth, int screenHeight)
     for (int i = 1; i <= poles; ++i)
     {
         int poleX = poleGap * i;
-        Point point1 = {poleX, screenHeight};
-        Point point2 = {poleX + POLE_WIDTH, screenHeight - POLE_HEIGHT};
+        Pole pole = {poleX, screenHeight};
 
-        gfx_filledRect(point1.x, point1.y, point2.x, point2.y, BLUE);
+        gfx_filledRect(pole.top, pole.bottom, pole.top + POLE_WIDTH, pole.bottom - POLE_HEIGHT, BLUE);
     }
 }
 int main(int argc, char* argv[])

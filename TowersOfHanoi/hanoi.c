@@ -6,17 +6,16 @@
 
 #define SCREEN_WIDTH gfx_screenWidth()
 #define SCREEN_HEIGHT gfx_screenHeight()
-#define CENTER_X SCREEN_WIDTH / 2
-#define CENTER_Y SCREEN_HEIGHT / 2
+#define CENTER_X (SCREEN_WIDTH / 2)
+#define CENTER_Y (SCREEN_HEIGHT / 2)
 #define FLOOR_HEIGHT 30
 #define NUM_OF_POLES 3
 #define POLE_HEIGHT 200
 #define POLE_WIDTH 20
-#define DISK_HEIGHT 10
-#define NUM_OF_DISKS 5
+#define DISK_HEIGHT 20  
+#define DISK_WIDTH 60
+#define NUM_OF_DISKS 10
 #define EMPTY (-1)
-
-
 
 typedef struct {
     int top;
@@ -25,8 +24,8 @@ typedef struct {
 } Disk;
 
 typedef struct {
-	int top; // its for drawing a pole think of better name ffs
-	int bottom;
+    int top;
+    int bottom;
     int topValue;
     int poleNumber;
     Disk currentDisks[NUM_OF_DISKS];
@@ -48,34 +47,62 @@ Disk pop(Pole *stack) {
     return poppedDisk;
 }
 
-
-
-void drawPoles(int poles, int screenWidth, int screenHeight)
-{
-    int poleGap = screenWidth / (poles + 1);
-
-    for (int i = 1; i <= poles; ++i)
-    {
-        int poleX = poleGap * i;
-        Pole pole = {poleX, screenHeight};
-
-        gfx_filledRect(pole.top, pole.bottom, pole.top + POLE_WIDTH, pole.bottom - POLE_HEIGHT, BLUE);
+void initializePoles(Pole poles[], Disk disks[]) {
+    for (int i = 0; i < NUM_OF_POLES; i++) {
+        poles[i].top = SCREEN_HEIGHT - FLOOR_HEIGHT;
+        poles[i].bottom = poles[i].top - POLE_HEIGHT;
+        poles[i].topValue = (i == 0) ? NUM_OF_DISKS - 1 : EMPTY; // Initialize first pole with disks
+        poles[i].poleNumber = i;
+        if (i == 0) {
+            for (int j = 0; j < NUM_OF_DISKS; j++) {
+                poles[i].currentDisks[j] = disks[j];
+            }
+        }
     }
 }
-int main(int argc, char* argv[])
-{
-	if (gfx_init()) {
-		exit(3);
-	}
 
-	while (1) {
-		gfx_filledRect(0, 0, SCREEN_WIDTH - 1, SCREEN_HEIGHT - 1, BLACK);
-		gfx_filledRect(0, SCREEN_HEIGHT - FLOOR_HEIGHT, SCREEN_WIDTH - 1, SCREEN_HEIGHT - 1, GREEN);
-		drawPoles(NUM_OF_POLES, SCREEN_WIDTH, SCREEN_HEIGHT - (FLOOR_HEIGHT+1));
-		gfx_updateScreen();
-		SDL_Delay(10);
-		if (gfx_pollkey() == SDLK_ESCAPE)
-			break;
-	}
-	return 0;
+void drawDisks(Pole poles[]) {
+    int poleGap = SCREEN_WIDTH / (NUM_OF_POLES + 1);
+    int maxDiskWidth = DISK_WIDTH;
+    for (int i = 0; i < NUM_OF_POLES; i++) {
+        Pole currentPole = poles[i];
+        int diskWidth = maxDiskWidth;
+        for (int j = 0; j <= currentPole.topValue; j++) {
+            int poleX = poleGap * (i + 1);
+            int diskY = currentPole.top - (j + 1) * DISK_HEIGHT;
+            int diskX = poleX - diskWidth / 2;
+            gfx_filledRect(diskX, diskY, diskX + diskWidth, diskY + DISK_HEIGHT, RED);
+            diskWidth -= 5; 
+        }
+    }
+}
+
+
+void drawPoles(int numPoles) {
+    int poleGap = SCREEN_WIDTH / (numPoles + 1);
+    for (int i = 1; i <= numPoles; ++i) {
+        int poleX = poleGap * i;
+        gfx_filledRect(poleX - POLE_WIDTH / 2, SCREEN_HEIGHT - FLOOR_HEIGHT, poleX + POLE_WIDTH / 2, SCREEN_HEIGHT - FLOOR_HEIGHT - POLE_HEIGHT, BLUE);
+    }
+}
+
+int main(int argc, char* argv[]) {
+    if (gfx_init()) {
+        exit(3);
+    }
+
+    Pole poles[NUM_OF_POLES];
+    Disk disks[NUM_OF_DISKS];
+
+    while (1) {
+        gfx_filledRect(0, 0, SCREEN_WIDTH - 1, SCREEN_HEIGHT - 1, BLACK);
+        gfx_filledRect(0, SCREEN_HEIGHT - (FLOOR_HEIGHT-1), SCREEN_WIDTH - 1, SCREEN_HEIGHT - 1, GREEN);
+        initializePoles(poles, disks);
+        drawPoles(NUM_OF_POLES);
+        drawDisks(poles);
+        gfx_updateScreen();
+        SDL_Delay(10);
+        if (gfx_pollkey() == SDLK_ESCAPE) break;
+    }
+    return 0;
 }

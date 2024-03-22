@@ -108,6 +108,22 @@ void moveDiskFromPoleToPole(Pole poles[], int sourcePole, int destinationPole) {
     }
 }
 
+void handleKey(int key, Pole poles[]) {
+    static int sourcePole = -1;
+
+    if (key >= '1' && key <= ('0' + NUM_OF_POLES)) {
+        int poleIndex = key - '1';
+
+        if (sourcePole == -1) {
+            sourcePole = poleIndex;
+        } else {
+            moveDiskFromPoleToPole(poles, sourcePole, poleIndex);
+            sourcePole = -1;
+        }
+    }
+}
+
+
 int main(int argc, char *argv[]) {
     if (gfx_init()) {
         exit(3);
@@ -122,13 +138,12 @@ int main(int argc, char *argv[]) {
         drawPoles();
         drawDisks(poles);
         gfx_updateScreen();
-        int key = gfx_pollkey();
-        if (key == '1') {
-            moveDiskFromPoleToPole(poles, 0, 1);
-        }
+        int key = gfx_getkey();
+        handleKey(key, poles);
         SDL_Delay(10);
         if (gfx_pollkey() == SDLK_ESCAPE) break;
     }
 
     return 0;
 }
+

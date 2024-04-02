@@ -9,16 +9,24 @@
 #define CENTER_Y (SCREEN_HEIGHT / 2)
 #define POLE_GAP (SCREEN_WIDTH / (NUM_OF_POLES + 1))
 #define FLOOR_HEIGHT 30
-#define NUM_OF_POLES 10
+#define NUM_OF_POLES 3
 #define POLE_WIDTH (SCREEN_WIDTH / (NUM_OF_POLES + 2))
 #define DISK_WIDTH (POLE_WIDTH / 2)
 #define POLE_HEIGHT (SCREEN_HEIGHT /2)
 #define DISK_HEIGHT (POLE_HEIGHT / NUM_OF_DISKS)
-#define NUM_OF_DISKS 40
+#define NUM_OF_DISKS 7
 #define EMPTY (-1)
 #define EXTREME_CASE_INDEX 9
 #define MAX_Y 50
 #define ANIMATION_SPEED 5
+#define WIN_TEXT "You win!"
+#define WIN_TEXT_WIDTH (strlen(WIN_TEXT) * 10)
+#define WIN_TEXT_X (CENTER_X - (WIN_TEXT_WIDTH / 2))
+#define LOSE_TEXT "You lose! Try again."
+#define LOSE_TEXT_WIDTH (strlen(LOSE_TEXT) * 10)
+#define LOSE_TEXT_X (CENTER_X - (LOSE_TEXT_WIDTH / 2))
+
+bool gameOver = false;
 
 typedef struct {
     int topX;
@@ -43,8 +51,8 @@ typedef struct {
     int speed;
 } DiskMovement;
 
+
 bool push(Pole *stack, Disk value) {
-    if (stack->topValue >= NUM_OF_DISKS - 1) return false;
     stack->topValue++;
     stack->currentDisks[stack->topValue] = value;
     return true;
@@ -89,7 +97,7 @@ void drawDisks(Pole poles[]) {
 }
 
 void drawPoles() {
-    int poleWidth = DISK_WIDTH / NUM_OF_DISKS + 1; // Ensure poleWidth is always greater than the smallest disk width
+    int poleWidth = DISK_WIDTH / NUM_OF_DISKS + 1; 
     for (int i = 1; i <= NUM_OF_POLES; ++i) {
         int poleX = POLE_GAP * i;
         gfx_filledRect(poleX - poleWidth / 2, SCREEN_HEIGHT - FLOOR_HEIGHT, poleX + poleWidth / 2,
@@ -115,11 +123,48 @@ bool isMoveLegal (Pole poles[], int sourcePole, int destinationPole) {
     return false;
 }
 
-void drawScreen (Pole poles[]) {
+bool checkWin(Pole poles[]) {
+    int poleWithAllDisks = EMPTY;
+    for (int i = 1; i < NUM_OF_POLES; i++) {
+        if (poles[i].topValue != EMPTY) {
+            if (poleWithAllDisks != EMPTY) {
+                return false;
+            }
+            poleWithAllDisks = i;
+        }
+    }
+
+    if (poleWithAllDisks == EMPTY || poles[poleWithAllDisks].topValue != NUM_OF_DISKS - 1) {
+        return false;
+    }
+    return true;
+}
+void drawScreen(Pole poles[]) {
     gfx_filledRect(0, 0, SCREEN_WIDTH - 1, SCREEN_HEIGHT - 1, BLACK);
     gfx_filledRect(0, SCREEN_HEIGHT - (FLOOR_HEIGHT - 1), SCREEN_WIDTH - 1, SCREEN_HEIGHT - 1, GREEN);
     drawPoles();
     drawDisks(poles);
+    
+    if (gameOver) {
+        gfx_textout(LOSE_TEXT_X, MAX_Y, LOSE_TEXT, RED);
+    }
+    else if (checkWin(poles)) {
+        gfx_textout(WIN_TEXT_X, MAX_Y, WIN_TEXT, GREEN);
+    }
+    
+}
+
+void checkExit(Pole poles[], int key) {
+    if ((key == SDLK_ESCAPE || key == SDLK_RETURN) && !checkWin(poles)) {
+        gameOver = true;
+        drawScreen(poles);
+        gfx_updateScreen();
+        SDL_Delay(2000); 
+        exit(0); 
+    }
+    else if ((key == SDLK_ESCAPE || key == SDLK_RETURN) && checkWin(poles)) {
+        exit(0);
+    }
 }
 
 void moveDiskHorizontally(Disk disk, Pole poles[], DiskMovement diskMovement) {
@@ -169,6 +214,7 @@ void animateDiskMovement(Pole poles[], int sourcePole, int destinationPole, Disk
     moveDiskDownwards(disk, poles, diskMovement);
 }
 
+
 void moveDiskFromPoleToPole(Pole poles[], int sourcePole, int destinationPole) {
    if (!isMoveLegal(poles, sourcePole, destinationPole)) {
     printf("Invalid move. Cannot move disk from pole %d to pole %d.\n", sourcePole + 1, destinationPole + 1);
@@ -179,7 +225,7 @@ void moveDiskFromPoleToPole(Pole poles[], int sourcePole, int destinationPole) {
     if (disk.value != EMPTY) {
         animateDiskMovement(poles, sourcePole, destinationPole, disk);
         push(&poles[destinationPole], disk);
-        printf("Disk of value %d moved from pole %d to pole %d.\n", disk.value, sourcePole + 1, destinationPole + 1);
+        printf("Disk of value %d moved from pole %d to pole %d.\n", disk.value, sourcePole + 1, destinationPole + 1); // Debugging to be removed later
     } else {
         printf("No disk to move from pole %d.\n", sourcePole + 1);
     }
@@ -230,8 +276,8 @@ int main(int argc, char *argv[]) {
         gfx_updateScreen();
         int key = gfx_getkey();
         handleKey(key, poles);
+        checkExit(poles, key); 
         SDL_Delay(10);
-        if (key == SDLK_ESCAPE) break;
     }
 
     return 0;

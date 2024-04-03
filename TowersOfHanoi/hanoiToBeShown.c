@@ -14,11 +14,12 @@
 #define DISK_WIDTH (POLE_WIDTH / 2)
 #define POLE_HEIGHT (SCREEN_HEIGHT /2)
 #define DISK_HEIGHT (POLE_HEIGHT / NUM_OF_DISKS)
-#define NUM_OF_DISKS 3
+#define NUM_OF_DISKS 33
 #define EMPTY (-1)
 #define EXTREME_CASE_INDEX 9
-#define MAX_Y 50
-#define ANIMATION_SPEED 5
+#define MAX_Y 70
+#define HORIZONTAL_SPEED_FACTOR 3
+#define VERTICAL_SPEED 1500
 #define WIN_TEXT "You win!"
 #define WIN_TEXT_WIDTH (strlen(WIN_TEXT) * 10)
 #define WIN_TEXT_X (CENTER_X - (WIN_TEXT_WIDTH / 2))
@@ -48,7 +49,8 @@ typedef struct {
     int startY;
     int endX;
     int endY;
-    int speed;
+    int verticalSpeed;
+    int horizontalSpeed;
 } DiskMovement;
 
 bool push(Pole *stack, Disk value) {
@@ -59,8 +61,9 @@ bool push(Pole *stack, Disk value) {
 
 Disk pop(Pole *stack) {
     Disk poppedDisk;
-    poppedDisk.value = EMPTY;
+    poppedDisk.value = EMPTY;    
     if (stack->topValue == EMPTY) return poppedDisk;
+    
     poppedDisk = stack->currentDisks[stack->topValue];
     stack->topValue--;
     return poppedDisk;
@@ -132,7 +135,7 @@ bool checkWin(Pole poles[]) {
             poleWithAllDisks = i;
         }
     }
-
+    
     if (poleWithAllDisks == EMPTY || poles[poleWithAllDisks].topValue != NUM_OF_DISKS - 1) {
         return false;
     }
@@ -167,36 +170,43 @@ void checkExit(Pole poles[], int key) {
     }
 }
 
-void moveDiskHorizontally(Disk disk, Pole poles[], DiskMovement diskMovement) {
-    for (int i = 0; i <= 100; i++) {
-        drawScreen(poles);
-        int currentX = diskMovement.startX + (diskMovement.endX - diskMovement.startX) * i / 100;
-        int currentY = MAX_Y;
-        gfx_filledRect(currentX, currentY, currentX + (disk.bottomX - disk.topX), currentY + (disk.bottomY - disk.topY), RED);
-        gfx_updateScreen();
-        SDL_Delay(diskMovement.speed);
-    }
-}
-
 void moveDiskUpwards (Disk disk, Pole poles[], DiskMovement diskMovement) {
-    for (int i = 0; i <= 100; i++) {
+    int totalSteps = 100;
+    int delayBetweenSteps = diskMovement.verticalSpeed / totalSteps;
+    for (int i = 0; i <= totalSteps; i++) {
         drawScreen(poles);
         int currentX = diskMovement.startX;
-        int currentY = diskMovement.startY - ((diskMovement.startY - MAX_Y) * i / 100);
+        int currentY = diskMovement.startY - ((diskMovement.startY - MAX_Y) * i / totalSteps);
         gfx_filledRect(currentX, currentY, currentX + (disk.bottomX - disk.topX), currentY + (disk.bottomY - disk.topY), RED);
         gfx_updateScreen();
-        SDL_Delay(diskMovement.speed);
+        SDL_Delay(delayBetweenSteps);
     }
 }
 
 void moveDiskDownwards (Disk disk, Pole poles[], DiskMovement diskMovement) {
-    for (int i = 0; i <= 100; i++) {
+    int totalSteps = 100;
+    int delayBetweenSteps = diskMovement.verticalSpeed / totalSteps;
+    for (int i = 0; i <= totalSteps; i++) {
         drawScreen(poles);
         int currentX = diskMovement.endX;
-        int currentY = MAX_Y + ((diskMovement.endY - MAX_Y) * i / 100);
+        int currentY = MAX_Y + ((diskMovement.endY - MAX_Y) * i / totalSteps);
         gfx_filledRect(currentX, currentY, currentX + (disk.bottomX - disk.topX), currentY + (disk.bottomY - disk.topY), RED);
         gfx_updateScreen();
-        SDL_Delay(diskMovement.speed);
+        SDL_Delay(delayBetweenSteps);
+    }
+}
+
+
+void moveDiskHorizontally(Disk disk, Pole poles[], DiskMovement diskMovement) {
+    int totalSteps = abs(diskMovement.endX - diskMovement.startX);
+    int delayBetweenSteps = diskMovement.horizontalSpeed / totalSteps;
+    for (int i = 0; i <= totalSteps; i++) {
+        drawScreen(poles);
+        int currentX = diskMovement.startX + (diskMovement.endX - diskMovement.startX) * i / totalSteps;
+        int currentY = MAX_Y;
+        gfx_filledRect(currentX, currentY, currentX + (disk.bottomX - disk.topX), currentY + (disk.bottomY - disk.topY), RED);
+        gfx_updateScreen();
+        SDL_Delay(delayBetweenSteps);
     }
 }
 
@@ -206,13 +216,19 @@ void animateDiskMovement(Pole poles[], int sourcePole, int destinationPole, Disk
     diskMovement.endX = POLE_GAP * (destinationPole + 1) - (disk.bottomX - disk.topX) / 2;
     diskMovement.startY = disk.topY;
     diskMovement.endY = SCREEN_HEIGHT - FLOOR_HEIGHT - (DISK_HEIGHT * (poles[destinationPole].topValue + 2));
-    diskMovement.speed = ANIMATION_SPEED;
+    diskMovement.horizontalSpeed = EMPTY;
+    diskMovement.verticalSpeed = VERTICAL_SPEED;
+    int distance = abs(diskMovement.endX - diskMovement.startX);
+    diskMovement.horizontalSpeed = distance * HORIZONTAL_SPEED_FACTOR;
+    
     moveDiskUpwards(disk, poles, diskMovement);
     
     moveDiskHorizontally(disk, poles, diskMovement);
 
     moveDiskDownwards(disk, poles, diskMovement);
 }
+
+
 
 void moveDiskFromPoleToPole(Pole poles[], int sourcePole, int destinationPole) {
    if (!isMoveLegal(poles, sourcePole, destinationPole)) {

@@ -5,17 +5,21 @@
 #include "pieces.inl"
 #include <time.h>
 #include <stdbool.h>
+#include <math.h>
 
 #define SCREEN_WIDTH gfx_screenWidth()
 #define SCREEN_HEIGHT gfx_screenHeight()
 #define BOARD_HEIGHT 20
 #define BOARD_WIDTH 10
-#define CELL_SIZE 32
+#define CELL_SIZE_MIN ((float)fmin(SCREEN_HEIGHT / (BOARD_HEIGHT + 2), SCREEN_WIDTH / (BOARD_WIDTH + 2)))
+#define CELL_SIZE ((int)CELL_SIZE_MIN)
 #define GAME_WIDTH (CELL_SIZE * BOARD_WIDTH)
 #define GAME_HEIGHT (CELL_SIZE * BOARD_HEIGHT)
 #define CENTER_GAME_X ((SCREEN_WIDTH - GAME_WIDTH) / 2)
-#define CENTER_GAME_Y (SCREEN_HEIGHT - GAME_HEIGHT - 1)
+#define CENTER_GAME_Y ((SCREEN_HEIGHT - GAME_HEIGHT) / 2)
+#define NEXT_PIECE_CELL_SIZE (CELL_SIZE / 2)
 #define NO_FULL_ROW -1
+
 
 int gameBoard[BOARD_WIDTH][BOARD_HEIGHT] = {0};
 
@@ -104,7 +108,6 @@ void drawPiece() {
 void addPieceToBoard() {
     for (int i = 0; i < 4; i++) {
         for (int j = 0; j < 4; j++) {
-            //printf("%d ", pieces[currentPiece.kind][currentPiece.rotation][i][j]);
             if (pieces[currentPiece.kind][currentPiece.rotation][i][j] != 0) {
                 gameBoard[currentPiece.position.x + i][currentPiece.position.y + j] = 1;
             }
@@ -203,15 +206,10 @@ int isFull() {
 }
 
 void removeRow(int row) {
-    // Shift all rows above the specified row down by one
     for (int j = row; j > 0; j--) {
         for (int i = 0; i < BOARD_WIDTH; i++) {
             gameBoard[i][j] = gameBoard[i][j - 1];
         }
-    }
-    // Clear the top row
-    for (int i = 0; i < BOARD_WIDTH; i++) {
-        gameBoard[i][0] = 0;
     }
 }
 
@@ -222,16 +220,26 @@ void moveDownFast() {
 }
 
 void drawSidebar() {
+
+    int startX = CENTER_GAME_X + GAME_WIDTH + CELL_SIZE / 2;
+    int startY = (SCREEN_HEIGHT - NEXT_PIECE_CELL_SIZE * 4) / 2; 
+
     for (int i = 0; i < 4; i++) {
         for (int j = 0; j < 4; j++) {
             if (pieces[currentPiece.nextKind][0][i][j] == 1) {
-                drawPieceInBoard(BOARD_WIDTH + i + 1, j, BLUE, 1);
+                int x = startX + i * NEXT_PIECE_CELL_SIZE;
+                int y = startY + j * NEXT_PIECE_CELL_SIZE;
+                gfx_filledRect(x, y, x + NEXT_PIECE_CELL_SIZE - 1, y + NEXT_PIECE_CELL_SIZE - 1, BLUE);
             } else if (pieces[currentPiece.nextKind][0][i][j] == 2) {
-                drawPieceInBoard(BOARD_WIDTH + i+ 1, j, GREEN, 1);
+                int x = startX + i * NEXT_PIECE_CELL_SIZE;
+                int y = startY + j * NEXT_PIECE_CELL_SIZE;
+                gfx_filledRect(x, y, x + NEXT_PIECE_CELL_SIZE - 1, y + NEXT_PIECE_CELL_SIZE - 1, GREEN);
             }
         }
     }
-} 
+}
+
+
 
 void handleMovement (int key)
 {
@@ -273,7 +281,7 @@ int main(int argc, char* argv[]) {
         drawPiece();
         drawGrid();
         drawSidebar();
-        movePieceDown(); // Move the position down
+        movePieceDown();
         handleMovement(key);
         gameOverCondition();
         int fullRow = isFull();

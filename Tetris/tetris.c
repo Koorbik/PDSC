@@ -9,8 +9,8 @@
 
 #define SCREEN_WIDTH gfx_screenWidth()
 #define SCREEN_HEIGHT gfx_screenHeight()
-#define BOARD_HEIGHT 20
-#define BOARD_WIDTH 10
+#define BOARD_HEIGHT 35
+#define BOARD_WIDTH 15
 #define FALL_SPEED 30
 #define CELL_SIZE_MIN ((float)fmin(SCREEN_HEIGHT / (BOARD_HEIGHT + 2), SCREEN_WIDTH / (BOARD_WIDTH + 2)))
 #define CELL_SIZE ((int)CELL_SIZE_MIN)
@@ -26,7 +26,7 @@
 
 int gameBoard[BOARD_WIDTH][BOARD_HEIGHT] = {0};
 
-bool GameOver = false;
+bool gameOver = false;
 
 typedef struct {
     int x;
@@ -37,10 +37,11 @@ typedef struct {
     Point position;
     int kind;
     int rotation;
-    int nextKind;
 } TetrisPiece;
 
 TetrisPiece currentPiece;
+int nextKind;
+
 
 int randomizeKind() {
     return rand() % NUM_OF_KINDS; 
@@ -49,9 +50,9 @@ int randomizeKind() {
 void initializePiece() {
     currentPiece.position.x = BOARD_WIDTH / 2 - 1;
     currentPiece.position.y = 0;
-    currentPiece.kind = currentPiece.nextKind;
+    currentPiece.kind = nextKind;
     currentPiece.rotation = 0;
-    currentPiece.nextKind = randomizeKind();
+    nextKind = randomizeKind();
 }
 
 int checkCollision(Point direction) {
@@ -165,7 +166,7 @@ int rotatePiece() {
 void gameOverCondition() {
     for (int i = 0; i < BOARD_WIDTH; i++) {
         if (gameBoard[i][0] != 0) {
-            GameOver = true;
+            gameOver = true;
             break;
         }
     }
@@ -174,6 +175,9 @@ void gameOverCondition() {
 void drawGameOver() {
     gfx_filledRect(0, 0, SCREEN_WIDTH - 1, SCREEN_HEIGHT - 1, BLACK);
     gfx_textout(SCREEN_WIDTH / 2 - 50, SCREEN_HEIGHT / 2, "GAME OVER", RED);
+    gfx_updateScreen();
+    SDL_Delay(2000);
+    exit(0);
 }
 
 void movePieceDown() {
@@ -189,7 +193,7 @@ void movePieceDown() {
         addPieceToBoard();
         initializePiece();
     }
-    }
+  }
 }
 
 int isFull() {
@@ -226,11 +230,11 @@ void drawNextPiece(int i, int j) {
     int startX = CENTER_GAME_X + GAME_WIDTH + CELL_SIZE / 2;
     int startY = (SCREEN_HEIGHT - NEXT_PIECE_CELL_SIZE * 4) / 2;
 
-    if (pieces[currentPiece.nextKind][0][i][j] == 1) {
+    if (pieces[nextKind][0][i][j] == 1) {
                 int x = startX + i * NEXT_PIECE_CELL_SIZE;
                 int y = startY + j * NEXT_PIECE_CELL_SIZE;
                 gfx_filledRect(x, y, x + NEXT_PIECE_CELL_SIZE - 1, y + NEXT_PIECE_CELL_SIZE - 1, BLUE);
-            } else if (pieces[currentPiece.nextKind][0][i][j] == 2) {
+            } else if (pieces[nextKind][0][i][j] == 2) {
                 int x = startX + i * NEXT_PIECE_CELL_SIZE;
                 int y = startY + j * NEXT_PIECE_CELL_SIZE;
                 gfx_filledRect(x, y, x + NEXT_PIECE_CELL_SIZE - 1, y + NEXT_PIECE_CELL_SIZE - 1, GREEN);
@@ -297,7 +301,7 @@ int main(int argc, char* argv[]) {
         if (fullRow != NO_FULL_ROW) {
             removeRow(fullRow);
         }
-        if (GameOver) {
+        if (gameOver) {
             drawGameOver();
         }
         gfx_updateScreen();

@@ -11,6 +11,7 @@
 #define SCREEN_HEIGHT gfx_screenHeight()
 #define BOARD_HEIGHT 20
 #define BOARD_WIDTH 10
+#define FALL_SPEED 30
 #define CELL_SIZE_MIN ((float)fmin(SCREEN_HEIGHT / (BOARD_HEIGHT + 2), SCREEN_WIDTH / (BOARD_WIDTH + 2)))
 #define CELL_SIZE ((int)CELL_SIZE_MIN)
 #define GAME_WIDTH (CELL_SIZE * BOARD_WIDTH)
@@ -19,6 +20,8 @@
 #define CENTER_GAME_Y ((SCREEN_HEIGHT - GAME_HEIGHT) / 2)
 #define NEXT_PIECE_CELL_SIZE (CELL_SIZE / 2)
 #define NO_FULL_ROW -1
+#define NUM_OF_KINDS 7
+#define NUM_OF_ROTATION 4
 
 
 int gameBoard[BOARD_WIDTH][BOARD_HEIGHT] = {0};
@@ -40,7 +43,7 @@ typedef struct {
 TetrisPiece currentPiece;
 
 int randomizeKind() {
-    return rand() % 7; 
+    return rand() % NUM_OF_KINDS; 
 }
 
 void initializePiece() {
@@ -125,8 +128,8 @@ void drawGrid() {
 
 Point getCenterOffset() {
     Point offset = {0, 0};
-    for (int i = 0; i < 4; i++) {
-        for (int j = 0; j < 4; j++) {
+    for (int i = 0; i < NUM_OF_ROTATION; i++) {
+        for (int j = 0; j < NUM_OF_ROTATION; j++) {
             if (pieces[currentPiece.kind][currentPiece.rotation][i][j] == 2) {
                 offset.x = i;
                 offset.y = j;
@@ -151,7 +154,7 @@ int rotatePiece() {
     currentPiece.position.x += move.x;
     currentPiece.position.y += move.y;
 
-    if (checkCollision((Point){0, 0})) { //add the condition that prevents the piece from rotating when being to far up
+    if (checkCollision((Point){0, 0})) { 
         currentPiece.rotation = oldRotation;
         currentPiece.position = oldPosition;
         return 0;
@@ -177,7 +180,7 @@ void movePieceDown() {
     Point direction = {0, 1};
     static int counter = 0;
     counter++;
-    if (counter % 30 == 0)
+    if (counter % FALL_SPEED == 0)
     {
     if (!checkCollision(direction)) {
         currentPiece.position.y += 1;
@@ -219,14 +222,11 @@ void moveDownFast() {
     }
 }
 
-void drawSidebar() {
-
+void drawNextPiece(int i, int j) {
     int startX = CENTER_GAME_X + GAME_WIDTH + CELL_SIZE / 2;
-    int startY = (SCREEN_HEIGHT - NEXT_PIECE_CELL_SIZE * 4) / 2; 
+    int startY = (SCREEN_HEIGHT - NEXT_PIECE_CELL_SIZE * 4) / 2;
 
-    for (int i = 0; i < 4; i++) {
-        for (int j = 0; j < 4; j++) {
-            if (pieces[currentPiece.nextKind][0][i][j] == 1) {
+    if (pieces[currentPiece.nextKind][0][i][j] == 1) {
                 int x = startX + i * NEXT_PIECE_CELL_SIZE;
                 int y = startY + j * NEXT_PIECE_CELL_SIZE;
                 gfx_filledRect(x, y, x + NEXT_PIECE_CELL_SIZE - 1, y + NEXT_PIECE_CELL_SIZE - 1, BLUE);
@@ -234,11 +234,24 @@ void drawSidebar() {
                 int x = startX + i * NEXT_PIECE_CELL_SIZE;
                 int y = startY + j * NEXT_PIECE_CELL_SIZE;
                 gfx_filledRect(x, y, x + NEXT_PIECE_CELL_SIZE - 1, y + NEXT_PIECE_CELL_SIZE - 1, GREEN);
-            }
+            }    
+}
+
+void drawSidebar() {
+    for (int i = 0; i < 4; i++) {
+        for (int j = 0; j < 4; j++) {
+            drawNextPiece(i, j);
         }
     }
 }
 
+void drawScreen () {
+    gfx_filledRect(0, 0, SCREEN_WIDTH - 1, SCREEN_HEIGHT - 1, BLACK);
+        drawBoard();
+        drawPiece();
+        drawGrid();
+        drawSidebar();
+}
 
 
 void handleMovement (int key)
@@ -276,11 +289,7 @@ int main(int argc, char* argv[]) {
 
     while (1) {
         int key = gfx_pollkey();
-        gfx_filledRect(0, 0, SCREEN_WIDTH - 1, SCREEN_HEIGHT - 1, BLACK);
-        drawBoard();
-        drawPiece();
-        drawGrid();
-        drawSidebar();
+        drawScreen();
         movePieceDown();
         handleMovement(key);
         gameOverCondition();

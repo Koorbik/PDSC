@@ -4,11 +4,7 @@
 #include <stdbool.h>
 #include "rand_malloc.h"
 
-void handleAllocationError(char* line) {
-    free(line);
-    printf("Memory Allocation failed, exiting a program\n");
-    exit(EXIT_FAILURE);
-}
+bool failedMemoryAllocation = false;
 
 char *getLine() {
 
@@ -26,12 +22,14 @@ char *getLine() {
                 buffer = 2*length;
             }
             else {
-                handleAllocationError(line);
+                free(line);
+                failedMemoryAllocation = true;
                 return NULL;
             }
-            newbuffer = (char*)realloc(line, buffer);
+            newbuffer = realloc(line, buffer);
             if(!newbuffer) {
-                handleAllocationError(line);
+                free(line);
+                failedMemoryAllocation = true;
                 return NULL;
             }
             line = newbuffer;
@@ -52,13 +50,15 @@ char *getLine() {
                 buffer = length + 1;
             }
             else {
-                handleAllocationError(line);
+                free(line);
+                failedMemoryAllocation = true;
                 return NULL;
             }
-            newbuffer = (char*)realloc(line, buffer);
+            newbuffer = realloc(line, buffer);
             
             if (!newbuffer) {
-                handleAllocationError(line);
+                free(line);
+                failedMemoryAllocation = true;
                 return NULL;
             }
             line = newbuffer;
@@ -71,7 +71,7 @@ char *reverseLine(char* line) {
     int len = strlen(line);
     char *reversedLine = malloc(len + 1); 
     if (!reversedLine) {
-        handleAllocationError(line);
+        failedMemoryAllocation = true;
         return NULL;
     }
 
@@ -100,30 +100,45 @@ char *reverseLine(char* line) {
 void reverseLines() {
     char** lines = NULL;
     int counter = 0;
+    int capacity = 0;
     char* line;
     while ((line = getLine())) {
-        char **new_lines = realloc(lines, (counter+1)* sizeof(char*));
-        if (!new_lines) {
-            free(line);
-            free(lines);
-            printf("Memory allocation failed, exiting the program\n");
-            exit(EXIT_FAILURE);
+        if (counter >= capacity) {
+            capacity = (capacity == 0) ? 1 : capacity * 2;
+            char **new_lines = realloc(lines, capacity * sizeof(char*));
+            if (!new_lines) {
+                for(int i = 0; i < counter; i++) {
+                    free(lines[i]);
+                }
+                free(line);
+                free(lines);
+                failedMemoryAllocation = true;
+                exit(EXIT_FAILURE);
+            }
+            lines = new_lines;
         }
-        lines = new_lines;
         lines[counter++] = line;
     }
     for (int i = counter; i > 0; i--) {
         char* reversedLine = reverseLine(lines[i-1]);
+        if (!reversedLine) {
+            for (int j = i-1; j >= 0; j--) {
+                free(lines[j]);
+            }
+            free(lines);
+            failedMemoryAllocation = true;
+            exit(EXIT_FAILURE);
+        }
+        if(!failedMemoryAllocation) {     
         printf("%s\n", reversedLine);
+        }
         free(reversedLine);
         free(lines[i - 1]);
     }
     free(lines);
-    printf("\n");
 }
 
 int main()
 {
     reverseLines();
-    return 0;
 }

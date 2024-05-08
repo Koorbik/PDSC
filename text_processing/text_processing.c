@@ -6,55 +6,19 @@
 
 bool failedMemoryAllocation = false;
 
-char *getLine() {
-
-    char *line = NULL;
-    size_t length = 0, buffer = 0;
-    int character;
-
-    while((character = getchar()) != EOF) {
-        char *newbuffer;
-        if (length >= buffer) {
-            if (buffer == 0) {
-                buffer = 2;
-            }
-            else if(buffer <= ((size_t)-1)/2) {
-                buffer = 2*length;
-            }
-            else {
-                free(line);
-                failedMemoryAllocation = true;
-                return NULL;
-            }
-            newbuffer = realloc(line, buffer);
-            if(!newbuffer) {
-                free(line);
-                failedMemoryAllocation = true;
-                return NULL;
-            }
-            line = newbuffer;
-        }
-        line[length++] = character;
-        if (character == '\n') {
-            break;
-        }
-    }
-
-    if((character == EOF) && (length == 0)) {
-        return NULL;
-    }
-
-    if (length >= buffer) {
+char *addTerminatingChar(char* line, size_t length, size_t* buffer) {
+    
+    if (length >= *buffer) {
         char* newbuffer;
         if (length < (size_t)-1) {
-                buffer = length + 1;
+                *buffer = length + 1;
             }
             else {
                 free(line);
                 failedMemoryAllocation = true;
                 return NULL;
             }
-            newbuffer = realloc(line, buffer);
+            newbuffer = realloc(line, *buffer);
             
             if (!newbuffer) {
                 free(line);
@@ -63,7 +27,62 @@ char *getLine() {
             }
             line = newbuffer;
     }
-    line[length++] = '\0'; 
+    line[length++] = '\0';
+    return line;
+}
+
+char *resizeBufferAndAddChar(char* line, size_t* length, size_t* buffer, int character) {
+    char* newbuffer;
+    if (*length >= *buffer) {
+        if (*buffer == 0) {
+            *buffer = 2;
+        }
+        else if(*buffer <= ((size_t)-1)/2) {
+            *buffer = 2 * (*length);
+        }
+        else {
+            free(line);
+            failedMemoryAllocation = true;
+            return NULL;
+        }
+        newbuffer = realloc(line, *buffer);
+        if(!newbuffer) {
+            free(line);
+            failedMemoryAllocation = true;
+            return NULL;
+        }
+        line = newbuffer;
+    }
+    line[(*length)++] = character;
+    return line;
+}
+
+char *getLine() {
+
+    char *line = NULL;
+    size_t length = 0, buffer = 0;
+    int character;
+
+    while((character = getchar()) != EOF) {
+        line = resizeBufferAndAddChar(line, &length, &buffer, character);
+        
+        if(failedMemoryAllocation) {
+            return NULL;
+        }
+
+        if (character == '\n') {
+            break;
+        }
+    }
+        
+    if((character == EOF) && (length == 0)) {
+        return NULL;
+    }
+
+    line = addTerminatingChar(line, length, &buffer);
+    if(failedMemoryAllocation) {
+        return NULL;
+    }
     return line;
 }
 
@@ -119,6 +138,7 @@ void reverseLines() {
         }
         lines[counter++] = line;
     }
+    
     for (int i = counter; i > 0; i--) {
         char* reversedLine = reverseLine(lines[i-1]);
         if (!reversedLine) {

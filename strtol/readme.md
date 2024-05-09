@@ -1,1 +1,0 @@
-Implementing own strtol function.

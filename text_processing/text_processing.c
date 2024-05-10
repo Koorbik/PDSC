@@ -7,7 +7,6 @@
 bool failedMemoryAllocation = false;
 
 char *addTerminatingChar(char* line, size_t length, size_t* buffer) {
-    
     if (length >= *buffer) {
         char* newbuffer;
         if (length < (size_t)-1) {
@@ -121,7 +120,7 @@ char *reverseLine(char* line) {
     char* line;
     while ((line = getLine())) {
         if ((*counter) >= (*capacity)) {
-            (*capacity) = ((*capacity) == 0) ? 1 : (*capacity) * 2;
+            (*capacity) = ((*capacity) == 0) ? 2 : (*capacity) * 2;
             char **new_lines = realloc(lines, (*capacity) * sizeof(char*));
             if (!new_lines) {
                 for(int i = 0; i < (*counter); i++) {
@@ -140,7 +139,6 @@ char *reverseLine(char* line) {
  }
 
 void reverseLines(char** lines, int counter) {
-    
     for (int i = counter; i > 0; i--) {
         char* reversedLine = reverseLine(lines[i-1]);
         if (!reversedLine) {

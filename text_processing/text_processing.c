@@ -93,7 +93,6 @@ char *reverseLine(char* line) {
         failedMemoryAllocation = true;
         return NULL;
     }
-
     int i, j, index = 0, startIndex, endIndex = len - 1;
     for(i = len - 1; i >= 0; i--)
     {
@@ -116,17 +115,16 @@ char *reverseLine(char* line) {
     return reversedLine;
 }
 
-void reverseLines() {
+ char** getText(int* counter, int* capacity)
+ {
     char** lines = NULL;
-    int counter = 0;
-    int capacity = 0;
     char* line;
     while ((line = getLine())) {
-        if (counter >= capacity) {
-            capacity = (capacity == 0) ? 1 : capacity * 2;
-            char **new_lines = realloc(lines, capacity * sizeof(char*));
+        if ((*counter) >= (*capacity)) {
+            (*capacity) = ((*capacity) == 0) ? 1 : (*capacity) * 2;
+            char **new_lines = realloc(lines, (*capacity) * sizeof(char*));
             if (!new_lines) {
-                for(int i = 0; i < counter; i++) {
+                for(int i = 0; i < (*counter); i++) {
                     free(lines[i]);
                 }
                 free(line);
@@ -136,8 +134,12 @@ void reverseLines() {
             }
             lines = new_lines;
         }
-        lines[counter++] = line;
+        lines[(*counter)++] = line;
     }
+    return lines;
+ }
+
+void reverseLines(char** lines, int counter) {
     
     for (int i = counter; i > 0; i--) {
         char* reversedLine = reverseLine(lines[i-1]);
@@ -160,5 +162,8 @@ void reverseLines() {
 
 int main()
 {
-    reverseLines();
+    int counter = 0;
+    int capacity = 0;
+    char** text = getText(&counter, &capacity);
+    reverseLines(text, counter);
 }

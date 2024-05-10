@@ -5,7 +5,7 @@
 #include <string.h>
 #include <ctype.h>
 
-bool isNegative(char** endPtr) {
+bool isNegative(const char** endPtr) {
 	
 	if (**endPtr == '-') {
 		(*endPtr)++;
@@ -38,7 +38,7 @@ int getCharValue (int character, int base) {
 	return -1;
 }
 
-int autoDetectBase(char **endPtr, int base) {
+int autoDetectBase(const char **endPtr, int base) {
     
 	int charValue = getCharValue(**endPtr, 10);
 	
@@ -59,7 +59,7 @@ int autoDetectBase(char **endPtr, int base) {
 	return -1;
 }
 
-void discardSpaces(char** endPtr) {
+void discardSpaces(const char** endPtr) {
 	while(isspace(**endPtr)) {
 		(*endPtr)++;
 	}
@@ -77,10 +77,7 @@ void handleOverflow(long *num, bool negative) {
 	}
 }
 
-bool handleWrongArgument(char **endPtr, int base) {
-	if (!endPtr) {
-		return false;
-	}
+bool handleWrongArgument(int base) {
 	if (((base < 2) || (base > 36)) && (base != 0)) {
 		errno = EINVAL;
 		return false;
@@ -88,7 +85,7 @@ bool handleWrongArgument(char **endPtr, int base) {
 	return true;
 }
 
-long convertString(char **endPtr, int base, bool negative) {
+long convertString(const char **endPtr, int base, bool negative) {
 	long result = 0;
 	int charVal;
 
@@ -113,20 +110,34 @@ void movePtrToLastValidChar(const char *nPtr, char **endPtr, int base, long resu
 long strtol(const char* nPtr, char** endPtr, int base)
 {
 	
-	if (!handleWrongArgument(endPtr, base)) {
+	if (!handleWrongArgument(base)) {
 		return 0;
 	}
 
-	discardSpaces(endPtr);
-	bool negative = isNegative(endPtr);
-	int autoDetectedBase = autoDetectBase(endPtr, base);
+	if(endPtr) {
+		*endPtr = (char*)nPtr;
+	}
+
+	const char *endPt = nPtr;
+
+	discardSpaces(&endPt);
+	bool negative = isNegative(&endPt);
+	int autoDetectedBase = autoDetectBase(&endPt, base);
 	if (base == 0) {
 		base = autoDetectedBase;
 	}
 
-	long result = convertString(endPtr, base, negative);
+	long result = convertString(&endPt, base, negative);
 	handleOverflow(&result, negative);
 
+	
+	if(endPtr) {
+		*endPtr = (char*)endPt;
+	}
+
+	if(endPtr) {
 	movePtrToLastValidChar(nPtr, endPtr, base, result);
+	}
+	
 	return result;
 } 
